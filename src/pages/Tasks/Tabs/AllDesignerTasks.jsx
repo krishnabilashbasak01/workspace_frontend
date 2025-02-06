@@ -18,7 +18,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { convertIsoStringTodate } from '../../../app/dateformat';
-import { Plus } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -38,6 +38,7 @@ const AllDesignerTasks = () => {
     const [tempInQueue, setTempInQueue] = useState([]);
     const [designers, setDesigners] = useState(null);
     const [selectedDesigner, setSelectedDesigner] = useState(null);
+    const [reordering, setReordering] = useState(false);
     useEffect(() => {
         if (!designers) {
             getDesigners()
@@ -83,29 +84,39 @@ const AllDesignerTasks = () => {
     // handle order
 
     // handle Reorder
- 
+
     const handleReorder = (newOrder) => {
         // console.log(newOrder);
         setTempInQueue(newOrder);
     }
 
     const onUpdateReorder = () => {
-        if (socket) {
-            socket.emit('on_reorder', { newOrderOfTasks: tempInQueue, user: user, designerId: selectedDesigner._id }, (response) => {
-                if (response.status === 'success') {
-                    toast({
-                        title: "Success!",
-                        description : response.message,
-                    });
-                }else{
-                    toast({
-                        title: "Error!",
-                        description : response.message,
-                        variant: "destructive"
-                    });
-                }
-            })
+        setReordering(false)
+
+        try {
+            if (socket) {
+                socket.emit('on_reorder', { newOrderOfTasks: tempInQueue, user: user, designerId: selectedDesigner._id }, (response) => {
+                    if (response.status === 'success') {
+                        toast({
+                            title: "Success!",
+                            description: response.message,
+                        });
+                    } else {
+                        toast({
+                            title: "Error!",
+                            description: response.message,
+                            variant: "destructive"
+                        });
+                    }
+                })
+            }
+        } catch (error) {
+            console.log(error);
+
+        } finally {
+            setReordering(false)
         }
+
     }
 
     return (<>
@@ -113,16 +124,22 @@ const AllDesignerTasks = () => {
             <div className="p-2 md:p-5 lg:p-5 ">
                 <Card>
                     <CardHeader className={`flex flex-row justify-between items-center`}>
-                        <div>
-                            <CardTitle>Task List of designer</CardTitle>
-                            <CardDescription>You can change create and edit clients here</CardDescription>
+                        <div className={`flex gap-2 items-center`}>
+                            <div>
+                                {reordering && <Loader2 size={30} className='animate-spin' />}
+                            </div>
+                            <div>
+                                <CardTitle>Task List of designer</CardTitle>
+                                <CardDescription>You can change create and edit clients here</CardDescription>
+                            </div>
+
                         </div>
                         <div>
                             <label htmlFor={`designer-date`} className={``}>Select Designer</label>
                             <Select id={`designer-date`} onValueChange={(e) => {
                                 let filteredTask = tasksInQueue.filter((_task) => _task.designerId === e._id);
                                 setTempInQueue(filteredTask);
-                                
+
                                 setSelectedDesigner(e)
                             }}
 
@@ -205,7 +222,7 @@ const AllDesignerTasks = () => {
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 exit={{ opacity: 0 }}
-                                                className="grid grid-cols-5 cursor-grabbing"
+                                                className={`grid grid-cols-5  ${['admin', 'super admin'].includes(user.role.name.toLowerCase()) && 'cursor-grabbing'}`}
                                                 onDragEnd={(event, info) => {
                                                     onUpdateReorder()
                                                 }}

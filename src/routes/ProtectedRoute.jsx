@@ -32,18 +32,12 @@ export const ProtectedRoute = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-
-            // const socket = connectSocket("http://localhost:3000", {
-            //     transports: ["websocket"], // Optional, ensures WebSocket connection
-            // });
             const socket = connectSocket(`${import.meta.env.VITE_USER_API_SERVER}`, {
                 transports: ["websocket"], // Optional, ensures WebSocket connection
             });
             socket.on("connect", async () => {
-
-                // console.log("Connected to WebSocket server with ID:", socket.id);
                 let _user = { ...user, socketId: socket.id };
-                // console.log(_user)
+
                 dispatch(updateUser(_user))
                 dispatch(setSocketConnectionStatus(true));
 
@@ -69,15 +63,9 @@ export const ProtectedRoute = ({ children }) => {
 
             if (user.role.name.toLowerCase() === 'sme' || user.role.name.toLowerCase() === 'gd' || user.role.name.toLowerCase() === 've' || user.role.name.toLowerCase() === 'super admin' || user.role.name.toLowerCase() === 'admin') {
                 socket.on('tasks_in_queue', (data) => {
-                    // console.log('protected', data);
-                    
                     dispatch(setTasksInQueue(data));
-                    // have add tasks in slice store
-                    // console.log('data', data);
-                    // console.log('data 1', selectedTask);
+                    
                     if (selectedTask && selectedTask.id) {
-                        // console.log('data 1', selectedTask);
-                        
                         let _selectedUpdatedTask = data.find((_task) => _task.id === selectedTask.id);
                         dispatch(setSelectedTask(_selectedUpdatedTask));
                     }
@@ -87,11 +75,8 @@ export const ProtectedRoute = ({ children }) => {
 
             // Cleanup socket connection on component unmount
             return () => {
-                // socket.disconnect();
-                // console.log("Socket disconnected");
                 socket.off("connect");
                 socket.off("user_status");
-   
                 socket.off("new_user_connected");
                 socket.off("tasks_in_queue");
             };
@@ -143,10 +128,7 @@ export const ProtectedRoute = ({ children }) => {
 
         if (socket) {
             socket.on("online_users", (data) => {
-                // console.log("Received get_users:", data);
-                //   Set Online Status To users
                 if (users) {
-
                     if (Array.isArray(users)) {
                         const updatedUsers = users.map((_user) => {
                             if (data.includes(_user._id)) {
@@ -202,11 +184,10 @@ export const ProtectedRoute = ({ children }) => {
     // get tasks in queue
     const getTaskInQueue = () => {
         console.log('getting task in queue');
-        
+
         if (socket) {
             if (user) {
                 socket.emit('get_tasks_in_queue', { role: user.role.name, id: user._id, head: user.head ? user.head : false, }, (response) => {
-
                 });
             }
         }
