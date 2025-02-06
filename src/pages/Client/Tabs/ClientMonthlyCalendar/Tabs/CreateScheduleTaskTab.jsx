@@ -33,66 +33,57 @@ export const CreateScheduleTaskTab = ({ client, selectedDate, postTypes, statuse
     const [selectedPostType, setSelectedPostType] = useState(null);
     const [scheduleDate, setScheduleDate] = useState(null); // No explicit type annotation
 
-    
+
     const [taskCreating, setTaskCreating] = useState(false);
 
 
     const onSubmitCreateTask = async () => {
         setTaskCreating(true);
-        try {
-            if (client?.id && taskTitle !== '' && selectedPostType && calendarEntries.length > 0 && scheduleDate) {
-                const data = {
-                    clientId: client.id,
-                    title: taskTitle,
-                    postTypeId: selectedPostType.id,
-                    calendarEntryIds: calendarEntries.map(entry => entry.id),
-                    scheduleDate: scheduleDate,
-                    statusId: 1
-                };
 
-                // console.log('data', data);
-                if (socket) {
-                    socket.emit('create_task', data, (response) => {
-                        if (response.status === "success") {
-                            // console.log(response.tasks.tasks);
-                            setSelectedTasks(response.tasks.tasks)
-                            getDaysOfMonth();
-                            toast({
-                                title: "Success",
-                                description: "Task Created Successfully",
-                            })
-                            setTaskCreating(false);
+        if (client?.id && taskTitle !== '' && selectedPostType && calendarEntries.length > 0 && scheduleDate) {
+            const data = {
+                clientId: client.id,
+                title: taskTitle,
+                postTypeId: selectedPostType.id,
+                calendarEntryIds: calendarEntries.map(entry => entry.id),
+                scheduleDate: scheduleDate,
+                statusId: 1
+            };
 
-                        } else {
-                            setTaskCreating(false);
-                            toast({
-                                title: "Error!",
-                                description: response.message,
-                                variant: "destructive"
-                            })
+            // console.log('data', data);
+            if (socket) {
+                socket.emit('create_task', data, (response) => {
+                    if (response.status === "success") {
+                        setSelectedTasks(response.tasks.tasks)
+                        getDaysOfMonth();
+                        toast({
+                            title: "Success",
+                            description: "Task Created Successfully",
+                        })
+                        setTaskCreating(false);
+                    } else {
+                        setTaskCreating(false);
+                        toast({
+                            title: "Error!",
+                            description: response.message,
+                            variant: "destructive"
+                        })
 
-                        }
-                    });
-                    // setTaskCreating(false);
-                }
-            } else {
+                    }
+                });
+                // setTaskCreating(false);
+            }else{
                 setTaskCreating(false);
-                toast({
-                    title: "Error",
-                    description: "Enter all necessary fields",
-                    variant: "destructive",
-                })
             }
-        } catch (e) {
-            setTaskCreating(false)
+        } else {
+            setTaskCreating(false);
             toast({
                 title: "Error",
                 description: "Enter all necessary fields",
                 variant: "destructive",
             })
-        } finally {
-            setTaskCreating(false);
         }
+
 
 
 
@@ -177,7 +168,7 @@ export const CreateScheduleTaskTab = ({ client, selectedDate, postTypes, statuse
 
                                 <Separator />
                                 <div className={`w-full flex flex-row gap-4 justify-center items-center`}>
-                                    <button onClick={() => {
+                                    <button disabled={taskCreating} onClick={() => {
                                         onSubmitCreateTask();
                                     }} className={`bg-zinc-200 rounded text-black p-2`}>{taskCreating ? (
                                         <Loader2 className={`animate-spin`} />) : 'Submit'}</button>

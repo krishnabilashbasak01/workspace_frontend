@@ -125,7 +125,7 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
                     designerId: selectedDesigner._id,
                     user: user
                 }
-    
+
                 if (data.id && data.title && data.workDate && data.designerId) {
                     if (socket) {
                         socket.emit("update_task", data, (response) => {
@@ -134,25 +134,25 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
                                 toast({
                                     title: "Success",
                                     description: "Successfully updated",
-                
+
                                 })
                                 onEditTaskModalChange();
                             } else {
-    
+
                                 toast({
                                     title: "Error!",
                                     description: response.message,
                                     variant: "destructive"
                                 })
-    
+
                             }
                         })
                     }
-    
-    
-                   
+
+
+
                 } else {
-    
+
                     toast({
                         title: "Error",
                         description: "Something went wrong",
@@ -165,7 +165,7 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
                     description: "Something went wrong",
                     variant: "destructive",
                 })
-    
+
             }
         } catch (error) {
             toast({
@@ -173,10 +173,10 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
                 description: "Something went wrong",
                 variant: "destructive",
             })
-        }finally{
+        } finally {
             setIsUpdating(false)
         }
-       
+
 
 
     }
@@ -263,52 +263,48 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
     const deleteTask = (taskId) => {
 
         setIsDeleting(true);
-        try {
-            // Update state with new array
 
+        if (socket) {
 
-            if (socket) {
+            socket.emit("delete_task", taskId, (response) => {
+                if (response.status === "success") {
 
-                socket.emit("delete_task", taskId, (response) => {
-                    if (response.status === "success") {
+                    // remove task from list
+                    let updatedTasks = tasks?.filter(({ id }) => id !== taskId); // Create a new array without the deleted task
+                    setTasks(updatedTasks);
 
-                        // remove task from list
-                        let updatedTasks = tasks?.filter(({ id }) => id !== taskId); // Create a new array without the deleted task
-                        setTasks(updatedTasks);
+                    getDaysOfMonth();
+                    // Optionally, remove the task from the UI
+                    toast({
+                        title: "Success",
+                        description: response.message,
 
-                        getDaysOfMonth();
-                        // Optionally, remove the task from the UI
-                        toast({
-                            title: "Success",
-                            description: response.message,
+                    });
+                    setIsDeleting(false);
+                } else {
+                    setIsDeleting(false);
+                    toast({
+                        title: "Error",
+                        description: response.message,
+                        variant: "destructive",
+                    })
+                }
+            });
 
-                        })
-                    } else {
-                        toast({
-                            title: "Error",
-                            description: response.message,
-                            variant: "destructive",
-                        })
-                    }
-                });
-
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Something went wrong",
-                variant: "destructive",
-            })
-
-        } finally {
+        } else {
             setIsDeleting(false);
         }
+
     }
 
     return (
         <>
             <TabsContent value={`tasks-tab`}>
-                <h1>Total Tasks : {tasks ? tasks?.length : ''}</h1>
+                <div className="flex justify-between items-center">
+                    <div> <h1>Total Tasks : {tasks ? tasks?.length : ''}</h1></div>
+                    <div>{isDeleting && <Loader2 className="animate-spin" /> }</div>
+                </div>
+               
                 <Table className="w-full border-collapse border border-slate-500">
                     <TableHeader>
                         <TableRow>
@@ -356,11 +352,12 @@ export const TasksTab = ({ selectedTasks, getDaysOfMonth, setSelectedTasks }) =>
                                             ><Pencil size={15} /></button>}
 
                                             <button
+                                            disabled={isDeleting}
                                                 className={`bg-red-500 text-zinc-100 p-1 rounded`}
                                                 onClick={() => {
                                                     deleteTask(task.id)
                                                 }}
-                                            >{isDeleting ? <Loader2 className={`animate-spin`} /> : <Delete size={15} />}</button>
+                                            > <Delete size={15} /></button>
                                         </div>
                                     }
                                 </TableCell>

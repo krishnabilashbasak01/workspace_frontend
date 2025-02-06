@@ -84,6 +84,7 @@ const AllTasksList = () => {
     const [designers, setDesigners] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [selectedDesigner, setSelectedDesigner] = useState(null);
+    const [addingToBucket, setAddingToBucket] = useState(false);
 
 
     useEffect(() => {
@@ -166,7 +167,11 @@ const AllTasksList = () => {
         if (_designer) {
             return (
                 <div className={`flex flex-row gap-1 items-center`}>
-                    <PersonStanding size={16} />
+                   
+                    <Avatar className={`w-10 h-10`} >
+                        <AvatarImage  src={`${_designer.profilePicture}`} />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
                     <p className={`text-sm ${_designer.online ? 'text-green-500' : ''}`}>{_designer.name.split(' ')[0]}</p>
                 </div>
             )
@@ -176,46 +181,70 @@ const AllTasksList = () => {
         return ''
     }
 
+    const getSMEById = (smes) => {
+        if (!smes || smes.length === 0 || !users) return '';
+    
+        for (let sme of smes) {
+            
+            
+            const user = users.find(({ _id }) => _id === sme.smeId);
+            if (user && user.todaysAttendance) {
+                console.log(user);
+                
+                return (
+                    <div className="flex flex-row gap-1 items-center">
+                        <Avatar className="w-10 h-10">
+                            <AvatarImage src={user.profilePicture} />
+                            <AvatarFallback>CN</AvatarFallback>
+                        </Avatar>
+                        <p className={`text-sm ${user.online ? 'text-green-500' : ''}`}>{user.name.split(' ')[0]}</p>
+                    </div>
+                );
+            }
+        }
+    
+        return '';
+    };
+
     // add to bucket
     const addToBucket = ({ task, user }) => {
-        setLoading(true)
+        setAddingToBucket(true)
 
-        try {
-            let data = {
-                task,
-                user: {
-                    smeId: user._id,
-                    role: user.role.name,
-                    socketId: user.socketId
-                }
-            }
-            if (socket) {
-                socket.emit('add_task_to_bucket', data, (response) => {
-                    if (response.status === 'success') {
-                        toast({
-                            title: "Success!",
-                            description: response.message,
-                        });
-                        getTasks();
-                    } else {
-                        toast({
-                            title: "Error!",
-                            description: response.message,
-                            variant: "destructive"
-                        });
-                    }
-                });
 
+        let data = {
+            task,
+            user: {
+                smeId: user._id,
+                role: user.role.name,
+                socketId: user.socketId
             }
-        } catch (error) {
-            toast({
-                title: "Error!",
-                description: 'Something wrong to add in bucket',
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false)
         }
+        if (socket) {
+            socket.emit('add_task_to_bucket', data, (response) => {
+                if (response.status === 'success') {
+                    setAddingToBucket(false)
+                    toast({
+                        title: "Success!",
+                        description: response.message,
+                    });
+                    getTasks();
+
+
+                } else {
+                    setAddingToBucket(false)
+
+                    toast({
+                        title: "Error!",
+                        description: response.message,
+                        variant: "destructive"
+                    });
+                }
+            });
+
+        } else {
+            setAddingToBucket(false)
+        }
+
 
     };
 
@@ -229,10 +258,10 @@ const AllTasksList = () => {
     const removeFromBucket = ({ task, user }) => {
         if (socket) {
             socket.emit('remove_task_from_bucket', { task, user }, (response) => {
-                console.log(response);
+
 
                 if (response.status === 'success') {
-                     getTasks();
+                    getTasks();
                     toast({
                         title: "Success!",
                         description: 'Successfully removed from bucket',
@@ -248,6 +277,8 @@ const AllTasksList = () => {
             })
         }
     }
+
+
 
 
     // DropDown Component
@@ -283,7 +314,7 @@ const AllTasksList = () => {
                         <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            {task.status.name === 'In Queue' ? (<>
+                            {task.status.name === 'In Queue' || ['admin', 'super admin'].includes(user.role.name.toLowerCase()) ? (<>
                                 <DropdownMenuItem onClick={() => {
                                     if (user.role.name.toLowerCase() === 'sme' || user.role.name.toLowerCase() === 'super admin') {
                                         console.log('remove from bucket', task);
@@ -302,22 +333,24 @@ const AllTasksList = () => {
                                     <span>Remove From Bucket</span>
                                 </DropdownMenuItem>
                             </>) : (
-                                <DropdownMenuItem onClick={() => {
-                                    if (user.role.name.toLowerCase() === 'sme') {
-
-                                        addToBucket({ task, user })
-                                    } else {
-                                        toast({
-                                            title: "Error!",
-                                            description: `${user.role.name} Don't have permission to add task in Bucket`
-                                        })
-                                    }
-                                }}>
-                                    <BetweenHorizonalStart />
-                                    <span>Add To Bucket</span>
-                                </DropdownMenuItem>
+                                <></>
                             )}
 
+                            {['Created', 'Designer Assigned'].includes(task.status.name) && <DropdownMenuItem onClick={() => {
+                                if (user.role.name.toLowerCase() === 'sme') {
+
+                                    addToBucket({ task, user })
+                                } else {
+                                    toast({
+                                        title: "Error!",
+                                        description: `${user.role.name} Don't have permission to add task in Bucket`
+                                    })
+                                }
+                            }}>
+                                <BetweenHorizonalStart />
+                                <span>Add To Bucket</span>
+                            </DropdownMenuItem>}
+                            
 
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
@@ -444,6 +477,25 @@ const AllTasksList = () => {
             ),
         },
         {
+            accessorKey: "sme",
+            header: ({ column }) => {
+                return (
+                    <p>
+                        SME
+                    </p>
+                );
+            },
+            cell: ({ row }) => (
+                <div onClick={()=>{
+                    console.log(row.original);
+                    
+                }}>
+                    {row.original.client?.smes ? getSMEById(row.original.client?.smes) : ''}
+                </div>
+
+            ),
+        },
+        {
             accessorKey: "designer",
             header: ({ column }) => {
                 return (
@@ -530,7 +582,7 @@ const AllTasksList = () => {
                 return (
                     <div className={`flex flex-row gap-2`}>
 
-                       {!['ve' , 'gd'].includes(user.role.name.toLowerCase()) ? <DropDownMenuComponent task={row.original} /> : '' } 
+                        {!['ve', 'gd'].includes(user.role.name.toLowerCase()) ? <DropDownMenuComponent task={row.original} /> : ''}
                     </div>
                 );
             },
@@ -621,12 +673,14 @@ const AllTasksList = () => {
     return (<>
         <TabsContent value={`tasks`} className="p-4">
             <Card  >
-                <CardHeader className={`flex flex-row justify-between items-center`}>
+                <CardHeader className={`flex flex-row gap-2 items-center`}>
                     <div>
                         <CardTitle>Tasks</CardTitle>
                         <CardDescription>You can update task here</CardDescription>
                     </div>
-                    {loading ?? <Loader2 className="animate-spin" />}
+                    {loading && <Loader2 className="animate-spin" />}
+                    {addingToBucket && <Loader2 className="animate-spin" />}
+
                 </CardHeader>
                 <CardContent className="grid gap-4">
                     <div className="flex items-center py-4 gap-2">

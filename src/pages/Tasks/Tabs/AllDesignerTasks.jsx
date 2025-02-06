@@ -91,48 +91,44 @@ const AllDesignerTasks = () => {
     }
 
     const onUpdateReorder = () => {
-        setReordering(false)
-
-        try {
-            if (socket) {
-                socket.emit('on_reorder', { newOrderOfTasks: tempInQueue, user: user, designerId: selectedDesigner._id }, (response) => {
-                    if (response.status === 'success') {
-                        toast({
-                            title: "Success!",
-                            description: response.message,
-                        });
-                    } else {
-                        toast({
-                            title: "Error!",
-                            description: response.message,
-                            variant: "destructive"
-                        });
-                    }
-                })
-            }
-        } catch (error) {
-            console.log(error);
-
-        } finally {
-            setReordering(false)
+        setReordering(!reordering)
+        if (socket) {
+            socket.emit('on_reorder', { newOrderOfTasks: tempInQueue, user: user, designerId: selectedDesigner._id }, (response) => {
+                if (response.status === 'success') {
+                    toast({
+                        title: "Success!",
+                        description: response.message,
+                    });
+                    setReordering(false)
+                } else {
+                    toast({
+                        title: "Error!",
+                        description: response.message,
+                        variant: "destructive"
+                    });
+                    setReordering(false)
+                }
+            })
+        } else {
+            setReordering(!reordering)
         }
-
     }
 
     return (<>
         <TabsContent value={`designers-task`}>
             <div className="p-2 md:p-5 lg:p-5 ">
+                {/* {reordering && <Loader2 className={`animate-spin`} />} */}
+
                 <Card>
                     <CardHeader className={`flex flex-row justify-between items-center`}>
                         <div className={`flex gap-2 items-center`}>
                             <div>
-                                {reordering && <Loader2 size={30} className='animate-spin' />}
-                            </div>
-                            <div>
                                 <CardTitle>Task List of designer</CardTitle>
                                 <CardDescription>You can change create and edit clients here</CardDescription>
                             </div>
-
+                            <div>
+                                {reordering && <Loader2 size={30} className='animate-spin' />}
+                            </div>
                         </div>
                         <div>
                             <label htmlFor={`designer-date`} className={``}>Select Designer</label>
@@ -162,47 +158,7 @@ const AllDesignerTasks = () => {
 
                     </CardHeader>
                     <CardContent>
-                        {/* <Reorder.Group axis="y" values={tempInQueue} onReorder={handleReorder} className={`space-y-2`}>
-                            <AnimatePresence>
-                                <table className='w-full border-collapse border border-slate-500'>
-                                    <thead>
-                                        <tr>
-                                            <th className="border border-slate-600" >Id</th>
-                                            <th className="border border-slate-600" >Title</th>
-                                            <th className="border border-slate-600" >Schedule Time</th>
-                                            <th className="border border-slate-600" >Work Time</th>
-                                            <th className="border border-slate-600" >Action</th>
-                                        </tr>
-                                    </thead>
 
-                                    <tbody>
-
-                                        {
-                                            selectedDesigner && tempInQueue && tempInQueue.filter(({ designerId }) => designerId === selectedDesigner?._id).map((task) => (
-                                                <Reorder.Item key={`in_queue_${task.id}`}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    value={task}
-                                                    onDragEnd={(event, info) => {
-                                                        // updateReorderOnServer();
-                                                    }}
-                                                >
-                                                    <tr>
-                                                        <td className={`border border-slate-600`}>{task.id}</td>
-                                                        <td className={`border border-slate-600`}>{task.title}</td>
-                                                        <td className={`border border-slate-600`}>{convertIsoStringTodate(task.scheduleDate).date} {convertIsoStringTodate(task.scheduleDate).time}</td>
-                                                        <td className={`border border-slate-600`}>{convertIsoStringTodate(task.workDate).date} {convertIsoStringTodate(task.workDate).time}</td>
-                                                        <td className={`border border-slate-600`}></td>
-                                                    </tr>
-                                                </Reorder.Item>
-                                            ))
-                                        }
-
-                                    </tbody>
-                                </table>
-                            </AnimatePresence>
-                        </Reorder.Group> */}
                         <Reorder.Group axis="y" values={tempInQueue} onReorder={handleReorder} className="flex flex-col border border-gray-500">
                             <div className="grid grid-cols-5 font-semibold ">
                                 <div className="p-2 border border-slate-600">Id</div>
@@ -223,9 +179,9 @@ const AllDesignerTasks = () => {
                                                 animate={{ opacity: 1 }}
                                                 exit={{ opacity: 0 }}
                                                 className={`grid grid-cols-5  ${['admin', 'super admin'].includes(user.role.name.toLowerCase()) && 'cursor-grabbing'}`}
-                                                onDragEnd={(event, info) => {
+                                                onDragEnd={(event, info) =>
                                                     onUpdateReorder()
-                                                }}
+                                                }
                                                 dragListener={user.head || user.role.name.toLowerCase() === 'admin' || user.role.name.toLowerCase() === 'super admin' ? true : false}
                                             >
                                                 <div className="p-2 border border-slate-600">{task.id}</div>
